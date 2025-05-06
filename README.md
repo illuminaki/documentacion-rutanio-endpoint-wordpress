@@ -1,6 +1,3 @@
-
-
-
 # Documentación de la API Rutanio
 
 ## Introducción
@@ -329,6 +326,81 @@ Authorization: Bearer <tu_token_jwt>
 }
 ```
 
+### 4. Crear Producto/Servicio
+**Método:** `POST`  
+**Ruta:** `https://marketplace.rutanio.com/wp-json/wc/v3/products`
+
+**Autenticación:**
+Debes incluir el token JWT en el header:
+```
+Authorization: Bearer TU_TOKEN_JWT
+```
+
+**Ejemplo de petición (JSON):**
+```json
+{
+  "name": "Terapia con Sueros Vitaminados",
+  "type": "simple",
+  "regular_price": "150",
+  "description": "<p>Sesión de sueroterapia con vitaminas y minerales para mejorar el sistema inmunológico y la energía.</p>",
+  "short_description": "Sueroterapia energizante y revitalizante.",
+  "categories": [
+    {
+      "id": 44
+    }
+  ],
+  "manage_stock": false,
+  "status": "publish"
+}
+```
+
+**Respuesta exitosa (201 - Creado):**
+```json
+{
+  "id": 9999,
+  "name": "Terapia con Sueros Vitaminados",
+  "slug": "terapia-con-sueros-vitaminados",
+  "permalink": "https://marketplace.rutanio.com/product/terapia-con-sueros-vitaminados/",
+  ...
+}
+```
+
+**Resumen de Campos Útiles:**
+| Campo | Tipo | Requerido | Descripción |
+|-------|------|-----------|-------------|
+| name | string | ✅ | Nombre del servicio o producto |
+| type | string | ✅ | "simple" o "variable" |
+| regular_price | string | ✅ | Precio base en string |
+| description | HTML | ❌ | Descripción larga en HTML |
+| short_description | HTML | ❌ | Descripción corta |
+| categories | array | ❌ | IDs de categorías existentes |
+| images | array | ❌ | URLs de imágenes |
+| status | string | ❌ | "publish", "draft" |
+| manage_stock | boolean | ❌ | true o false |
+
+**Ejemplo en curl:**
+```bash
+curl -X POST https://marketplace.rutanio.com/wp-json/wc/v3/products \
+-H "Content-Type: application/json" \
+-H "Authorization: Bearer TU_TOKEN_JWT" \
+-d '{
+  "name": "Consulta Nutricional",
+  "type": "simple",
+  "regular_price": "50",
+  "description": "<p>Consulta personalizada con nutricionista.</p>",
+  "short_description": "Consulta nutricional profesional.",
+  "categories": [{"id": 44}],
+  "images": [{"src": "https://tusitio.com/img/consulta.jpg"}],
+  "manage_stock": false,
+  "status": "publish"
+}'
+```
+
+**Nota:** Puedes obtener los IDs de categorías con:
+```
+GET https://marketplace.rutanio.com/wp-json/wc/v3/products/categories
+```
+
 ## Códigos de Estado
 
 | Código | Descripción |
@@ -369,5 +441,22 @@ response = requests.post(
         'roles': ['wcfm_vendor'],
         'first_name': 'Nuevo',
         'last_name': 'Vendedor'
+    }
+)
+
+# Crear producto/servicio
+response = requests.post(
+    'https://marketplace.rutanio.com/wp-json/wc/v3/products',
+    headers={'Authorization': 'Bearer tu_token_jwt'},
+    json={
+        'name': 'Terapia con Sueros Vitaminados',
+        'type': 'simple',
+        'regular_price': '150',
+        'description': '<p>Sesión de sueroterapia con vitaminas y minerales para mejorar el sistema inmunológico y la energía.</p>',
+        'short_description': 'Sueroterapia energizante y revitalizante.',
+        'categories': [{'id': 44}],
+        'images': [{'src': 'https://tusitio.com/wp-content/uploads/2024/servicio.jpg'}],
+        'manage_stock': False,
+        'status': 'publish'
     }
 )
