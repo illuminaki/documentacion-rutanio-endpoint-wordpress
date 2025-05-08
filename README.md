@@ -31,7 +31,7 @@ Authorization: Bearer <tu_token_jwt>
 **Respuesta exitosa:**
 ```json
 {
-    "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL21hcmtldHBsYWNlLnJ1dGFuaW8uY29tIiwiaWF0IjoxNzQ1OTU3ODI3LCJuYmYiOjE3NDU5NTc4MjcsImV4cCI6MTc0NjU2MjYyNywiZGF0YSI6eyJ1c2VyIjp7ImlkIjoiMSJ9fX0.G3f0njkmG7wqBGa578PBwXSe18ZDEnpnDDJy0ke50AE",
+    "token": "eyJ0eXAiOiJKV1QiLCJ....",
     "user_email": "jsagudeloaa@gmail.com",
     "user_nicename": "jsagudeloaagmail-com",
     "user_display_name": "SEBAS AGUDELO",
@@ -401,6 +401,43 @@ curl -X POST https://marketplace.rutanio.com/wp-json/wc/v3/products \
 GET https://marketplace.rutanio.com/wp-json/wc/v3/products/categories
 ```
 
+### 5. Buscar Servicios por Título
+**Método:** `GET`  
+**Ruta:** `https://marketplace.rutanio.com/wp-json/wc/v3/products`
+
+**Parámetros:**
+- `search` (string): Término de búsqueda para filtrar productos por título
+- `Authorization` (string): Token de autenticación JWT en el header
+
+**Ejemplo de petición:**
+```bash
+curl -X GET \
+  'https://marketplace.rutanio.com/wp-json/wc/v3/products?search=pez' \
+  -H 'Authorization: Bearer TU_TOKEN_JWT'
+```
+
+**Respuesta exitosa:**
+```json
+[
+  {
+    "id": 2413,
+    "name": "\"pez\"",
+    "slug": "pez",
+    "permalink": "https://marketplace.rutanio.com/product/pez/",
+    "price": "150",
+    "regular_price": "150",
+    "description": "<p>\"desc\"</p>\n",
+    ...
+    // Resto de campos igual que en el endpoint de listar servicios
+  }
+]
+```
+
+**Notas:**
+- Este endpoint devuelve un array de productos cuyo título coincide con el término de búsqueda
+- La búsqueda no distingue entre mayúsculas y minúsculas
+- Se requiere autenticación con token JWT válido
+
 ## Códigos de Estado
 
 | Código | Descripción |
@@ -459,4 +496,11 @@ response = requests.post(
         'manage_stock': False,
         'status': 'publish'
     }
+)
+
+# Buscar servicios por título
+response = requests.get(
+    'https://marketplace.rutanio.com/wp-json/wc/v3/products',
+    headers={'Authorization': 'Bearer tu_token_jwt'},
+    params={'search': 'pez'}
 )
