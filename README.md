@@ -438,16 +438,64 @@ curl -X GET \
 - La búsqueda no distingue entre mayúsculas y minúsculas
 - Se requiere autenticación con token JWT válido
 
-## Códigos de Estado
+### 6. Consultar Saldo Actual de Puntos
+**Método:** `GET`  
+**Ruta:** `https://marketplace.rutanio.com/wp-json/rutanio/v1/mycred/saldo`
 
-| Código | Descripción |
-|--------|-------------|
-| 200 | OK - Petición exitosa |
-| 201 | Creado - Recurso creado |
-| 400 | Bad Request - Datos inválidos |
-| 401 | No autorizado |
-| 404 | No encontrado |
-| 500 | Error del servidor |
+**Autenticación:**
+Se requiere token JWT (header):
+```
+Authorization: Bearer <tu_token_jwt>
+```
+
+**Respuesta exitosa:**
+```json
+{
+  "user_id": 22,
+  "email": "atencion.companiax@gmail.com",
+  "saldo": 45
+}
+```
+
+**Campos:**
+- `user_id`: ID interno del usuario autenticado.
+- `email`: Email del usuario autenticado.
+- `saldo`: Saldo actual de puntos en la cuenta myCred.
+
+### 7. Transferir Puntos Entre Usuarios
+**Método:** `POST`  
+**Ruta:** `https://marketplace.rutanio.com/wp-json/rutanio/v1/mycred/transferir`
+
+**Autenticación:**
+Se requiere token JWT (header):
+```
+Authorization: Bearer <tu_token_jwt>
+Content-Type: application/json
+```
+
+**Parámetros (body JSON):**
+- `destino`: Teléfono o email del usuario destino (debe existir).
+- `cantidad`: Cantidad de puntos a transferir (entero positivo).
+
+**Ejemplo de petición:**
+```json
+{
+  "destino": "3101001010",      // Puede ser número de teléfono o email registrado
+  "cantidad": 5
+}
+```
+
+**Respuesta exitosa:**
+```json
+{
+  "status": "ok",
+  "de": 2,
+  "para": 735,
+  "cantidad": 5,
+  "nuevo_saldo": 20
+}
+```
+
 
 ## Ejemplos de Uso
 ```python
@@ -461,11 +509,12 @@ response = requests.post(
         'password': 'tu_contraseña'
     }
 )
+token = response.json()['token']
 
 # Listar servicios
 response = requests.get(
     'https://marketplace.rutanio.com/wp-json/wc/v3/products',
-    headers={'Authorization': 'Bearer tu_token_jwt'}
+    headers={'Authorization': f'Bearer {token}'}
 )
 
 # Crear cuenta de usuario final
@@ -484,7 +533,7 @@ response = requests.post(
 # Crear producto/servicio
 response = requests.post(
     'https://marketplace.rutanio.com/wp-json/wc/v3/products',
-    headers={'Authorization': 'Bearer tu_token_jwt'},
+    headers={'Authorization': f'Bearer {token}'},
     json={
         'name': 'Terapia con Sueros Vitaminados',
         'type': 'simple',
@@ -501,6 +550,94 @@ response = requests.post(
 # Buscar servicios por título
 response = requests.get(
     'https://marketplace.rutanio.com/wp-json/wc/v3/products',
-    headers={'Authorization': 'Bearer tu_token_jwt'},
+    headers={'Authorization': f'Bearer {token}'},
     params={'search': 'pez'}
 )
+
+# Consultar saldo de puntos
+response = requests.get(
+    'https://marketplace.rutanio.com/wp-json/rutanio/v1/mycred/saldo',
+    headers={'Authorization': f'Bearer {token}'}
+)
+print(response.json())  # {'user_id': 22, 'email': 'atencion.companiax@gmail.com', 'saldo': 45}
+
+# Transferir puntos a otro usuario
+response = requests.post(
+    'https://marketplace.rutanio.com/wp-json/rutanio/v1/mycred/transferir',
+    headers={'Authorization': f'Bearer {token}'},
+    json={
+        'destino': '3101001010',  # Puede ser teléfono o email del destinatario
+        'cantidad': 5
+    }
+)
+print(response.json())  # {'status': 'ok', 'de': 2, 'para': 735, 'cantidad': 5, 'nuevo_saldo': 20}
+```
+
+## Flujo Completo de Uso de Puntos
+```python
+import requests
+
+# 1. Obtener token de autenticación
+res = requests.post(
+    'https://marketplace.rutanio.com/wp-json/jwt-auth/v1/token',
+    json={
+        'username': 'atencion.companiax@gmail.com',
+        'password': 'OlSU$wzKKzmj&7#o(bh5Xby&'
+    }
+)
+token = res.json()['token']
+
+# 2. Consultar saldo actual de puntos
+res = requests.get(
+    'https://marketplace.rutanio.com/wp-json/rutanio/v1/mycred/saldo',
+    headers={'Authorization': f'Bearer {token}'}
+)
+print(res.json())  # {'user_id': 2, 'email': 'atencion.companiax@gmail.com', 'saldo': 20}
+
+# 3. Transferir puntos a otro usuario por teléfono
+res = requests.post(
+    'https://marketplace.rutanio.com/wp-json/rutanio/v1/mycred/transferir',
+    headers={'Authorization': f'Bearer {token}'},
+    json={
+        'destino': '3101001010',
+        'cantidad': 5
+    }
+)
+print(res.json())  # {'status': 'ok', 'de': 2, 'para': 735, 'cantidad': 5, 'nuevo_saldo': 15}
+
+# 4. Verificar nuevo saldo después de la transferencia
+res = requests.get(
+    'https://marketplace.rutanio.com/wp-json/rutanio/v1/mycred/saldo',
+    headers={'Authorization': f'Bearer {token}'}
+)
+print(res.json())  # {'user_id': 2, 'email': 'atencion.companiax@gmail.com', 'saldo': 15}
+```
+
+## Seguridad y Mejores Prácticas para Puntos
+
+### Autenticación
+- Todos los endpoints de puntos requieren autenticación mediante token JWT.
+- Nunca almacenes tokens JWT en localStorage o cookies sin protección adecuada.
+- Los tokens tienen un tiempo de expiración limitado, prepárate para refrescarlos cuando sea necesario.
+
+### Transferencia de Puntos
+- Siempre verifica el saldo antes de intentar una transferencia.
+- Implementa confirmaciones antes de realizar transferencias para evitar errores.
+- Valida que el destinatario exista antes de mostrar opciones de transferencia en la UI.
+- Después de cada transferencia, actualiza el saldo mostrado al usuario.
+
+### Manejo de Errores
+- Implementa manejo adecuado para todos los códigos de error posibles (400, 401, 404, 500).
+- Muestra mensajes de error amigables para el usuario final.
+- Registra los errores para diagnóstico y monitoreo.
+
+### Limitaciones
+- No se pueden transferir puntos a uno mismo.
+- Solo se pueden transferir cantidades enteras positivas.
+- El usuario debe tener saldo suficiente para realizar la transferencia.
+- El destinatario debe ser un usuario registrado en el sistema (por teléfono o email).
+
+### Registro de Actividad
+- Todas las transferencias de puntos quedan registradas en el sistema.
+- Los cambios en el saldo se reflejan inmediatamente.
+- Los usuarios pueden consultar su saldo en cualquier momento.
