@@ -496,6 +496,44 @@ Content-Type: application/json
 }
 ```
 
+### 8. Auto-login con Número de Teléfono
+**Método:** `POST`  
+**Ruta:** `https://marketplace.rutanio.com/wp-json/custom/v1/auto-login`
+
+**Descripción:**
+Este endpoint permite iniciar sesión o registrar un usuario utilizando solo su número de teléfono. Si el número ya está registrado, devuelve el token de autenticación. Si no está registrado, crea automáticamente una nueva cuenta y devuelve el token.
+
+**Parámetros (body JSON):**
+- `phone` (string): Número de teléfono del usuario.
+
+**Ejemplo de petición:**
+```json
+{
+  "phone": "573001112234"
+}
+```
+
+**Respuesta exitosa:**
+```json
+{
+    "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL21hcmtldHBsYWNlLnJ1dGFuaW8uY29tIiwiaWF0IjoxNzUzMTQ1Nzc0LCJuYmYiOjE3NTMxNDU3NzQsImV4cCI6MTc1Mzc1MDU3NCwiZGF0YSI6eyJ1c2VyIjp7ImlkIjoiNzYxIn19fQ.RbcsBhxuFO8Y6_jiJ2kRZVeSvLilx9O_e7eW2x2Mj5o",
+    "user_email": "user_573001112234@auto.com",
+    "user_nicename": "user_573001112234-2",
+    "user_display_name": "user_573001112234",
+    "roles": [
+        "wcfm_vendor"
+    ],
+    "store_name": "user_573001112234",
+    "store_id": 761
+}
+```
+
+**Notas:**
+- Si el número de teléfono ya está registrado, el sistema devolverá el token de autenticación existente.
+- Si el número de teléfono no está registrado, el sistema creará automáticamente una nueva cuenta con el rol de vendedor (wcfm_vendor).
+- El correo electrónico generado automáticamente sigue el formato `user_[número_teléfono]@auto.com`.
+- El nombre de usuario y nombre de la tienda se generan a partir del número de teléfono.
+
 
 ## Ejemplos de Uso
 ```python
