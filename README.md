@@ -328,10 +328,10 @@ Authorization: Bearer <tu_token_jwt>
 
 ### 4. Crear Producto/Servicio
 **Método:** `POST`  
-**Ruta:** `https://marketplace.rutanio.com/wp-json/wc/v3/products`
+**Ruta:** `https://marketplace.rutanio.com/wp-json/rutanio/v1/crear-servicio`
 
 **Autenticación:**
-Debes incluir el token JWT en el header:
+Debes incluir el token
 ```
 Authorization: Bearer TU_TOKEN_JWT
 ```
@@ -339,30 +339,30 @@ Authorization: Bearer TU_TOKEN_JWT
 **Ejemplo de petición (JSON):**
 ```json
 {
-  "name": "Terapia con Sueros Vitaminados",
-  "type": "simple",
-  "regular_price": "150",
-  "description": "<p>Sesión de sueroterapia con vitaminas y minerales para mejorar el sistema inmunológico y la energía.</p>",
-  "short_description": "Sueroterapia energizante y revitalizante.",
-  "categories": [
-    {
-      "id": 44
-    }
-  ],
-  "manage_stock": false,
-  "status": "publish"
+  "name": "Reparación de PC a domicilio",
+  "description": "Formateo, mantenimiento, instalación de programas a domicilio.",
+  "price": 85000,
+  "contacto": "3151234567"
 }
+
 ```
 
 **Respuesta exitosa (201 - Creado):**
 ```json
 {
-  "id": 9999,
-  "name": "Terapia con Sueros Vitaminados",
-  "slug": "terapia-con-sueros-vitaminados",
-  "permalink": "https://marketplace.rutanio.com/product/terapia-con-sueros-vitaminados/",
-  ...
+  "id": 1234,
+  "name": "Reparación de PC a domicilio",
+  "type": "simple",
+  "regular_price": "85000",
+  "description": "Formateo, mantenimiento, instalación de programas a domicilio.",
+  "manage_stock": false,
+  "status": "publish",
+  "permalink": "https://marketplace.rutanio.com/product/reparacion-de-pc-a-domicilio/",
+  "price": "85000",
+  "contacto": "3151234567",
+  "wa_url": "https://wa.me/3151234567"
 }
+
 ```
 
 **Resumen de Campos Útiles:**
@@ -380,7 +380,7 @@ Authorization: Bearer TU_TOKEN_JWT
 
 **Ejemplo en curl:**
 ```bash
-curl -X POST https://marketplace.rutanio.com/wp-json/wc/v3/products \
+curl -X POST https://marketplace.rutanio.com/wp-json/rutanio/v1/crear-servicio \
 -H "Content-Type: application/json" \
 -H "Authorization: Bearer TU_TOKEN_JWT" \
 -d '{
@@ -398,39 +398,75 @@ curl -X POST https://marketplace.rutanio.com/wp-json/wc/v3/products \
 
 **Nota:** Puedes obtener los IDs de categorías con:
 ```
-GET https://marketplace.rutanio.com/wp-json/wc/v3/products/categories
+GET https://marketplace.rutanio.com/wp-json/rutanio/v1/buscar-servicio
 ```
 
 ### 5. Buscar Servicios por Título
 **Método:** `GET`  
-**Ruta:** `https://marketplace.rutanio.com/wp-json/wc/v3/products`
+**Ruta:** `https://marketplace.rutanio.com/wp-json/rutanio/v1/buscar-servicio`
 
 **Parámetros:**
-- `search` (string): Término de búsqueda para filtrar productos por título
-- `Authorization` (string): Token de autenticación JWT en el header
+- `search` (string): Término de búsqueda para filtrar productos por título: https://marketplace.rutanio.com/wp-json/rutanio/v1/buscar-servicio?nombre=PC   devuelve un total de 5 servicios con dos campos que se pueden usar para el fin contacto es solo el numero asociado a ese servicio y wa_url es el enlace de whatsapp que se puede usar para contactar al vendedor dinamico con mensaje predefinido si lo mandan con esas sintaxis es funcional en wpp
+
 
 **Ejemplo de petición:**
 ```bash
 curl -X GET \
-  'https://marketplace.rutanio.com/wp-json/wc/v3/products?search=pez' \
+  'https://marketplace.rutanio.com/wp-json/rutanio/v1/buscar-servicio?search=pez' \
   -H 'Authorization: Bearer TU_TOKEN_JWT'
 ```
 
 **Respuesta exitosa:**
 ```json
 [
-  {
-    "id": 2413,
-    "name": "\"pez\"",
-    "slug": "pez",
-    "permalink": "https://marketplace.rutanio.com/product/pez/",
-    "price": "150",
-    "regular_price": "150",
-    "description": "<p>\"desc\"</p>\n",
-    ...
-    // Resto de campos igual que en el endpoint de listar servicios
-  }
+    {
+        "id": 2722,
+        "nombre": "IA Automatrizaicon",
+        "descripcion": "Formateo, mantenimiento, instalación de programas a domicilio.",
+        "precio": "85000",
+        "contacto": "3197292078",
+        "wa_url": "https://wa.me/573197292078?text=Hola%2C%20vengo%20de%20Rutanio%20y%20quiero%20saber%20m%C3%A1s%20de%20tu%20servicio.",
+        "link": "https://marketplace.rutanio.com/product/ia-automatrizaicon/"
+    },
+    {
+        "id": 2717,
+        "nombre": "Terapia relajante",
+        "descripcion": "Masaje antiestrés por 1 hora",
+        "precio": "120000",
+        "contacto": "",
+        "wa_url": null,
+        "link": "https://marketplace.rutanio.com/product/terapia-relajante/"
+    },
+    {
+        "id": 2709,
+        "nombre": "Terapia con Sueros Vitaminados",
+        "descripcion": "Sesión de sueroterapia con vitaminas y minerales para mejorar el sistema inmunológico y la energía.",
+        "precio": "150",
+        "contacto": "",
+        "wa_url": null,
+        "link": "https://marketplace.rutanio.com/product/terapia-con-sueros-vitaminados/"
+    },
+    {
+        "id": 2190,
+        "nombre": "Membresía Creador NFT Anual",
+        "descripcion": "¡Desbloquea tu creatividad y sumérgete en el emocionante mundo de los NFTs con nuestro Plan Creador NFT! Por solo $90 al año, tendrás acceso exclusivo a una plataforma intuitiva que te permitirá dar vida a tus propias obras de arte digitales y distribuirlas en tus redes blockchain favoritas, incluyendo Ethereum, Polygon, Binance Smart Chain, Celo [&hellip;]",
+        "precio": "400000",
+        "contacto": "",
+        "wa_url": null,
+        "link": "https://marketplace.rutanio.com/product/membresia-creador-nft-anual/"
+    },
+    {
+        "id": 1962,
+        "nombre": "Membresía Creador NFT",
+        "descripcion": "¡Desbloquea tu creatividad y sumérgete en el emocionante mundo de los NFTs con nuestro Plan Creador NFT! Por solo $9 usd al mes, tendrás acceso exclusivo a una plataforma intuitiva que te permitirá dar vida a tus propias obras de arte digitales y distribuirlas en tus redes blockchain favoritas, incluyendo  Polygon,  Celo y Harmony. Imagina [&hellip;]",
+        "precio": "40000",
+        "contacto": "",
+        "wa_url": null,
+        "link": "https://marketplace.rutanio.com/product/membresia-creador-nft/"
+    }
 ]
+
+
 ```
 
 **Notas:**
