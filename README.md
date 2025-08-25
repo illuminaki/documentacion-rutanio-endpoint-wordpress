@@ -715,3 +715,105 @@ print(res.json())  # {'user_id': 2, 'email': 'atencion.companiax@gmail.com', 'sa
 - Todas las transferencias de puntos quedan registradas en el sistema.
 - Los cambios en el saldo se reflejan inmediatamente.
 - Los usuarios pueden consultar su saldo en cualquier momento.
+
+### 9. Transferir Puntos con Comisión y Límite (v2)
+
+- Método: POST
+- Ruta: `https://marketplace.rutanio.com/wp-json/rutanio/v1/mycred/transferir-v2`
+
+#### Autenticación
+- Token JWT válido en el header
+  - `Authorization: Bearer <tu_token_jwt>`
+- `Content-Type: application/json`
+
+#### Parámetros (body JSON)
+- `destino` (string): Teléfono o email del usuario destino.
+- `cantidad` (int): Cantidad de puntos a transferir (entero positivo).
+
+#### Reglas adicionales
+- Se descuenta 10% de comisión (mínimo 1 punto).
+- La comisión se abona al usuario `ID = 21` (cuenta de la plataforma).
+- Los usuarios que no son administradores (`administrator`) tienen solo 3 transferencias gratuitas.
+- A partir de la 4ª transferencia, se devuelve error:
+
+```json
+{
+  "code": "free_limit_exceeded",
+  "message": "Has superado el límite de transferencias en el plan gratuito. Debes actualizar tu plan.",
+  "data": { "status": 403 }
+}
+```
+
+#### Ejemplo de petición
+```json
+{
+  "destino": "cliente@ejemplo.com",
+  "cantidad": 10
+}
+```
+
+#### Ejemplo de respuesta exitosa
+```json
+{
+  "status": "ok",
+  "ruta": "/rutanio/v1/mycred/transferir-v2",
+  "de": 2,
+  "para": 735,
+  "cantidad": 10,
+  "comision": 1,
+  "total_deducido": 11,
+  "saldo_remitente": 89,
+  "plataforma_id": 21,
+  "free_limit": 3,
+  "free_used": 2,
+  "free_left": 1
+}
+```
+
+### 10. Asignar Puntos Manualmente (para admins/automatización)
+
+- Método: POST
+- Ruta: `https://marketplace.rutanio.com/wp-json/rutanio/v1/asignar-puntos`
+
+#### Seguridad
+- Protegido con clave secreta (`key`) que debe enviarse en la petición.
+- ⚠️ Este endpoint está diseñado para usos internos/automatización (p. ej., desde n8n).
+
+#### Parámetros (body JSON o x-www-form-urlencoded)
+- `key` (string, requerido): Clave secreta configurada en el servidor (ej.: `clave_super_segura_123`).
+- `destino` (string, requerido): Email o teléfono del usuario destino.
+- `cantidad` (int, requerido): Cantidad de puntos a asignar.
+
+#### Ejemplo de petición
+```json
+{
+  "key": "clave_super_segura_123",
+  "destino": "social.rutanio@gmail.com",
+  "cantidad": 50
+}
+```
+
+#### Respuesta exitosa
+```json
+{
+  "status": "ok",
+  "user_id": 21,
+  "username": "social",
+  "email": "social.rutanio@gmail.com",
+  "puntos_asignados": 50,
+  "nuevo_saldo": 150
+}
+```
+
+#### Posibles errores
+- `403 unauthorized`: clave incorrecta.
+- `404 no_user`: usuario destino no existe.
+- `400 invalid_params`: parámetros inválidos.
+- `500 mycred_missing`: myCred no está instalado.
+
+#### Notas para desarrolladores
+- Si vas a usar `asignar-puntos` desde Postman/n8n, configura el Body → raw → JSON o usa x-www-form-urlencoded.
+- `transferir-v2` reemplaza gradualmente al endpoint `transferir` original porque:
+  - añade la comisión del 10%,
+  - controla el límite de plan gratuito,
+  - devuelve más información útil (saldo restante, límite de transferencias).
