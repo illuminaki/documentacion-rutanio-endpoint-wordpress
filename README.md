@@ -811,9 +811,311 @@ print(res.json())  # {'user_id': 2, 'email': 'atencion.companiax@gmail.com', 'sa
 - `400 invalid_params`: parámetros inválidos.
 - `500 mycred_missing`: myCred no está instalado.
 
-#### Notas para desarrolladores
-- Si vas a usar `asignar-puntos` desde Postman/n8n, configura el Body → raw → JSON o usa x-www-form-urlencoded.
-- `transferir-v2` reemplaza gradualmente al endpoint `transferir` original porque:
-  - añade la comisión del 10%,
-  - controla el límite de plan gratuito,
-  - devuelve más información útil (saldo restante, límite de transferencias).
+ #### Notas para desarrolladores
+ - Si vas a usar `asignar-puntos` desde Postman/n8n, configura el Body → raw → JSON o usa x-www-form-urlencoded.
+ - `transferir-v2` reemplaza gradualmente al endpoint `transferir` original porque:
+   - añade la comisión del 10%,
+   - controla el límite de plan gratuito,
+   - devuelve más información útil (saldo restante, límite de transferencias).
+
+### 11. Calificar servicio/producto comprado (WooCommerce)
+
+- Método: `POST`
+- Ruta: `https://marketplace.rutanio.com/wp-json/rutanio/v1/reviews/rate`
+
+#### Autenticación
+- Requiere usuario autenticado (token JWT en header):
+  ```
+  Authorization: Bearer <tu_token_jwt>
+  Content-Type: application/json
+  ```
+- Solo compradores verificados pueden calificar el producto.
+
+#### Parámetros (body JSON)
+- `product_id` (int, requerido): ID del producto a calificar.
+- `order_id` (int, opcional): ID de la orden relacionada (útil para depurar).
+- `rating` (int, requerido): Valor entre 1 y 5.
+- `comment` (string, opcional): Comentario de la reseña.
+
+#### Ejemplo de petición (curl)
+```bash
+curl -X POST \
+  'https://marketplace.rutanio.com/wp-json/rutanio/v1/reviews/rate' \
+  -H 'Authorization: Bearer TU_TOKEN_JWT' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "product_id": 123,
+    "order_id": 456,
+    "rating": 5,
+    "comment": "Excelente servicio, muy recomendado"
+  }'
+```
+
+#### Ejemplo de respuesta exitosa
+```json
+{
+  "status": "ok",
+  "review_performed": true,
+  "message": "Reseña creada exitosamente.",
+  "product_id": 123,
+  "order_id": 456,
+  "rating": 5,
+  "review": {
+    "comment_id": 9876,
+    "comment": "Excelente servicio, muy recomendado",
+    "approved": 1
+  },
+  "verified_buyer": true
+}
+```
+
+#### Posibles respuestas de control (no error HTTP, mantiene contrato estable)
+- Parámetros inválidos (falta `product_id` o `rating` fuera de 1..5):
+  ```json
+  {
+    "status": "ok",
+    "review_performed": false,
+    "reason": "invalid_params",
+    "message": "Parámetros inválidos (product_id y rating 1..5 requeridos).",
+    "product_id": 0,
+    "order_id": 456,
+    "rating": 0
+  }
+  ```
+- Producto no encontrado:
+  ```json
+  {
+    "status": "ok",
+    "review_performed": false,
+    "reason": "product_not_found",
+    "message": "Producto no encontrado.",
+    "product_id": 99999,
+    "order_id": 456,
+    "rating": 5
+  }
+  ```
+- Reseñas deshabilitadas para el producto:
+  ```json
+  {
+    "status": "ok",
+    "review_performed": false,
+    "reason": "reviews_disabled",
+    "message": "Las reseñas están deshabilitadas para este producto.",
+    "product_id": 123,
+    "order_id": 456,
+    "rating": 5
+  }
+  ```
+- Usuario no es comprador verificado del producto:
+  ```json
+  {
+    "status": "ok",
+    "review_performed": false,
+    "reason": "not_verified_buyer",
+    "message": "Solo compradores verificados pueden calificar este producto.",
+    "product_id": 123,
+    "order_id": 456,
+    "rating": 5
+  }
+  ```
+- Ya existe reseña del mismo usuario para el producto:
+  ```json
+  {
+    "status": "ok",
+    "review_performed": false,
+    "reason": "already_reviewed",
+    "message": "Ya existe una reseña tuya para este producto.",
+    "product_id": 123,
+    "order_id": 456,
+    "rating": 4,
+    "review": {
+      "comment_id": 8765,
+      "comment": "Muy buen servicio",
+      "approved": 1,
+      "date": "2025-01-01 12:00:00"
+    }
+  }
+  ```
+
+#### Errores (HTTP)
+- `401 not_logged_in`: No autenticado.
+- `500 wc_missing`: WooCommerce no está instalado/activo.
+- `500 comment_insert_failed`: No se pudo guardar la reseña.
+
+#### Implementación (PHP)
+```php
+/**
+ * Endpoint: Calificar servicio/producto comprado (WooCommerce)
+ * POST /wp-json/rutanio/v1/reviews/rate
+ * Body: { "product_id": 123, "order_id": 456, "rating": 5, "comment": "..." }
+ */
+add_action('rest_api_init', function () {
+    register_rest_route('rutanio/v1', '/reviews/rate', [
+        'methods'  => 'POST',
+        'callback' => 'rutanio_reviews_rate_endpoint',
+        'permission_callback' => function () {
+            return is_user_logged_in();
+        },
+    ]);
+});
+
+function rutanio_reviews_rate_endpoint(WP_REST_Request $request) {
+    if (!class_exists('WooCommerce')) {
+        return new WP_Error('wc_missing', 'WooCommerce no está instalado/activo.', ['status' => 500]);
+    }
+
+    $user_id    = get_current_user_id();
+    if (!$user_id) {
+        return new WP_Error('not_logged_in', 'No autenticado.', ['status' => 401]);
+    }
+
+    // ---- Inputs ----
+    $product_id = absint($request->get_param('product_id'));
+    $order_id   = absint($request->get_param('order_id')); // opcional, ayuda a depurar
+    $rating     = intval($request->get_param('rating'));
+    $comment    = $request->get_param('comment');
+    $comment    = is_string($comment) ? wp_strip_all_tags($comment) : '';
+
+    if (!$product_id || $rating < 1 || $rating > 5) {
+        // No rompemos el flujo: devolvemos "ok" con performed=false
+        return [
+            'status'            => 'ok',
+            'review_performed'  => false,
+            'reason'            => 'invalid_params',
+            'message'           => 'Parámetros inválidos (product_id y rating 1..5 requeridos).',
+            'product_id'        => $product_id,
+            'order_id'          => $order_id,
+            'rating'            => $rating,
+        ];
+    }
+
+    $product = wc_get_product($product_id);
+    if (!$product) {
+        return [
+            'status'            => 'ok',
+            'review_performed'  => false,
+            'reason'            => 'product_not_found',
+            'message'           => 'Producto no encontrado.',
+            'product_id'        => $product_id,
+            'order_id'          => $order_id,
+            'rating'            => $rating,
+        ];
+    }
+
+    // ¿Están habilitadas las valoraciones/comentarios?
+    if (!wc_review_ratings_enabled() || !comments_open($product_id)) {
+        return [
+            'status'            => 'ok',
+            'review_performed'  => false,
+            'reason'            => 'reviews_disabled',
+            'message'           => 'Las reseñas están deshabilitadas para este producto.',
+            'product_id'        => $product_id,
+            'order_id'          => $order_id,
+            'rating'            => $rating,
+        ];
+    }
+
+    // ---- Verificación: ¿el usuario compró el producto? ----
+    $user      = get_userdata($user_id);
+    $has_bought = wc_customer_bought_product($user ? $user->user_email : '', $user_id, $product_id);
+
+    if (!$has_bought) {
+        // Intento de calificar sin compra verificada
+        return [
+            'status'            => 'ok',
+            'review_performed'  => false,
+            'reason'            => 'not_verified_buyer',
+            'message'           => 'Solo compradores verificados pueden calificar este producto.',
+            'product_id'        => $product_id,
+            'order_id'          => $order_id,
+            'rating'            => $rating,
+        ];
+    }
+
+    // ---- Idempotencia: evitar múltiples reseñas del mismo usuario al mismo producto ----
+    $existing = get_comments([
+        'post_id' => $product_id,
+        'user_id' => $user_id,
+        'type'    => 'review',
+        'status'  => 'approve', // también buscamos pendientes
+        'number'  => 1,
+        'count'   => false,
+    ]);
+    if (empty($existing)) {
+        // También buscamos pendientes/no aprobados
+        $existing = get_comments([
+            'post_id' => $product_id,
+            'user_id' => $user_id,
+            'type'    => 'review',
+            'status'  => 'hold',
+            'number'  => 1,
+            'count'   => false,
+        ]);
+    }
+    if (!empty($existing)) {
+        $c = $existing[0];
+        return [
+            'status'            => 'ok',
+            'review_performed'  => false,
+            'reason'            => 'already_reviewed',
+            'message'           => 'Ya existe una reseña tuya para este producto.',
+            'product_id'        => $product_id,
+            'order_id'          => $order_id,
+            'rating'            => get_comment_meta($c->comment_ID, 'rating', true),
+            'review'            => [
+                'comment_id'   => (int) $c->comment_ID,
+                'comment'      => $c->comment_content,
+                'approved'     => (int) $c->comment_approved,
+                'date'         => $c->comment_date_gmt,
+            ],
+        ];
+    }
+
+    // ---- Construir el comentario/reseña ----
+    $userdata  = get_userdata($user_id);
+    $author    = $userdata ? $userdata->display_name : 'Usuario';
+    $email     = $userdata ? $userdata->user_email   : '';
+
+    $commentdata = [
+        'comment_post_ID'      => $product_id,
+        'comment_author'       => $author,
+        'comment_author_email' => $email,
+        'comment_content'      => $comment ?: sprintf(__('Calificación: %d estrellas', 'woocommerce'), $rating),
+        'comment_type'         => 'review',
+        'comment_parent'       => 0,
+        'user_id'              => $user_id,
+        // Aprueba automáticamente (ajústalo a '0' si quieres moderación)
+        'comment_approved'     => 1,
+    ];
+
+    // Insertar comentario
+    $comment_id = wp_insert_comment(wp_slash($commentdata));
+    if (!$comment_id || is_wp_error($comment_id)) {
+        return new WP_Error('comment_insert_failed', 'No se pudo guardar la reseña.', ['status' => 500]);
+    }
+
+    // Meta estándar de Woo para rating y verificado
+    add_comment_meta($comment_id, 'rating',   $rating, true);
+    add_comment_meta($comment_id, 'verified', 1,       true);
+
+    // Disparar hooks de WooCommerce para recálculo de promedios, counts, etc.
+    do_action('woocommerce_new_customer_review', $comment_id, $product_id);
+    // WC recalcula rating/contadores con sus propios hooks al insertar comment_type=review + meta rating.
+
+    // Payload de éxito (mantiene contrato estable para n8n)
+    return [
+        'status'            => 'ok',
+        'review_performed'  => true,
+        'message'           => 'Reseña creada exitosamente.',
+        'product_id'        => $product_id,
+        'order_id'          => $order_id,
+        'rating'            => $rating,
+        'review'            => [
+            'comment_id'   => (int) $comment_id,
+            'comment'      => $comment ?: sprintf('Calificación: %d estrellas', $rating),
+            'approved'     => 1,
+        ],
+        'verified_buyer'    => true,
+    ];
+}
+```
