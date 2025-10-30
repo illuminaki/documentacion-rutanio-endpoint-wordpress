@@ -44,7 +44,42 @@ Authorization: Bearer <tu_token_jwt>
 }
 ```
 
-### 2. Listar Servicios
+### 2. Cerrar Sesión
+**Método:** `POST`  
+**Ruta:** `https://marketplace.rutanio.com/wp-json/jwt-auth/v1/token/revoke`
+
+**Parámetros:**
+- `Authorization` (header): Token JWT a revocar
+
+**Ejemplo de petición:**
+```bash
+curl -X POST https://marketplace.rutanio.com/wp-json/jwt-auth/v1/token/revoke \
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJ...."
+```
+
+**Respuesta exitosa:**
+```json
+{
+    "code": "jwt_auth_token_revoked",
+    "message": "Token revocado exitosamente",
+    "data": {
+        "status": 200
+    }
+}
+```
+
+**Respuesta de error (token inválido):**
+```json
+{
+    "code": "jwt_auth_invalid_token",
+    "message": "Token inválido o expirado",
+    "data": {
+        "status": 403
+    }
+}
+```
+
+### 3. Listar Servicios
 **Método:** `GET`  
 **Ruta:** `https://marketplace.rutanio.com/wp-json/wc/v3/products`
 
@@ -180,7 +215,7 @@ Authorization: Bearer <tu_token_jwt>
 ]
 ```
 
-### 3. Crear Cuenta de Usuario Final
+### 4. Crear Cuenta de Usuario Final
 **Método:** `POST`  
 **Ruta:** `https://marketplace.rutanio.com/wp-json/wp/v2/users`
 
@@ -326,7 +361,7 @@ Authorization: Bearer <tu_token_jwt>
 }
 ```
 
-### 4. Crear Producto/Servicio
+### 5. Crear Producto/Servicio
 **Método:** `POST`  
 **Ruta:** `https://marketplace.rutanio.com/wp-json/rutanio/v1/crear-servicio`
 
@@ -401,7 +436,7 @@ curl -X POST https://marketplace.rutanio.com/wp-json/rutanio/v1/crear-servicio \
 GET https://marketplace.rutanio.com/wp-json/rutanio/v1/buscar-servicio
 ```
 
-### 5. Buscar Servicios por Título
+### 6. Buscar Servicios por Título
 **Método:** `GET`  
 **Ruta:** `https://marketplace.rutanio.com/wp-json/rutanio/v1/buscar-servicio`
 
@@ -474,7 +509,7 @@ curl -X GET \
 - La búsqueda no distingue entre mayúsculas y minúsculas
 - Se requiere autenticación con token JWT válido
 
-### 6. Consultar Saldo Actual de Puntos
+### 7. Consultar Saldo Actual de Puntos
 **Método:** `GET`  
 **Ruta:** `https://marketplace.rutanio.com/wp-json/rutanio/v1/mycred/saldo`
 
@@ -498,7 +533,7 @@ Authorization: Bearer <tu_token_jwt>
 - `email`: Email del usuario autenticado.
 - `saldo`: Saldo actual de puntos en la cuenta myCred.
 
-### 7. Transferir Puntos Entre Usuarios
+### 8. Transferir Puntos Entre Usuarios
 **Método:** `POST`  
 **Ruta:** `https://marketplace.rutanio.com/wp-json/rutanio/v1/mycred/transferir`
 
@@ -532,7 +567,7 @@ Content-Type: application/json
 }
 ```
 
-### 8. Auto-login con Número de Teléfono
+### 9. Auto-login con Número de Teléfono
 **Método:** `POST`  
 **Ruta:** `https://marketplace.rutanio.com/wp-json/custom/v1/auto-login`
 
@@ -716,7 +751,7 @@ print(res.json())  # {'user_id': 2, 'email': 'atencion.companiax@gmail.com', 'sa
 - Los cambios en el saldo se reflejan inmediatamente.
 - Los usuarios pueden consultar su saldo en cualquier momento.
 
-### 9. Transferir Puntos con Comisión y Límite (v2)
+### 10. Transferir Puntos con Comisión y Límite (v2)
 
 - Método: POST
 - Ruta: `https://marketplace.rutanio.com/wp-json/rutanio/v1/mycred/transferir-v2`
@@ -770,7 +805,7 @@ print(res.json())  # {'user_id': 2, 'email': 'atencion.companiax@gmail.com', 'sa
 }
 ```
 
-### 10. Asignar Puntos Manualmente (para admins/automatización)
+### 11. Asignar Puntos Manualmente (para admins/automatización)
 
 - Método: POST
 - Ruta: `https://marketplace.rutanio.com/wp-json/rutanio/v1/asignar-puntos`
@@ -818,7 +853,7 @@ print(res.json())  # {'user_id': 2, 'email': 'atencion.companiax@gmail.com', 'sa
    - controla el límite de plan gratuito,
    - devuelve más información útil (saldo restante, límite de transferencias).
 
-### 11. Calificar servicio/producto comprado (WooCommerce)
+### 12. Calificar servicio/producto comprado (WooCommerce)
 
 - Método: `POST`
 - Ruta: `https://marketplace.rutanio.com/wp-json/rutanio/v1/reviews/rate`
